@@ -66,7 +66,7 @@ int server_handshake(int *to_client) {
   returns the file descriptor for the downstream pipe.
   =========================*/
 int client_handshake(int *to_server) {
-  int from_server = 0;
+  int from_server;
   char sp[1000];
   
   printf("creating private FIFO...\n");
