@@ -9,15 +9,17 @@
   returns the file descriptor for the upstream pipe.
   =========================*/
 int server_handshake(int *to_client) {
-  
+
+  printf("making wkp.../n");
   int err = mkfifo(WKP, 0644);
   if(err == -1){
     printf("error: %s\n", strerror(errno));
     return 0;
   }
+  
   printf("receiving private FIFO name...\n");
-  int from_client = open(WKP, O_RDONLY);
-  if(from_client == -1){
+  int to_server = open(WKP, O_RDONLY);
+  if(to_server == -1){
     printf("error: %s\n", strerror(errno));
     return 0;
   }
@@ -25,7 +27,7 @@ int server_handshake(int *to_client) {
   printf("reading private FIFO name...\n");
   // client message
   char cm[HANDSHAKE_BUFFER_SIZE];
-  err = read(from_client, cm, HANDSHAKE_BUFFER_SIZE);
+  err = read(to_server, cm, HANDSHAKE_BUFFER_SIZE);
   if(err == -1){
     printf("error: %s\n", strerror(errno));
     return 0;
@@ -41,6 +43,7 @@ int server_handshake(int *to_client) {
     return 0;
   }
   
+  printf("sending ack.../n");
   err = write(*to_client, ACK, sizeof(ACK));
   if(err == -1){
     printf("error: %s\n", strerror(errno));
@@ -49,18 +52,17 @@ int server_handshake(int *to_client) {
   
   // server receives final response from client
   printf("receiving response from client...\n");
-  err = read(from_client, cm, sizeof(cm));
+  err = read(to_server, cm, sizeof(cm));
   if(err == -1){
     printf("error: %s\n", strerror(errno));
     return 0;
   }
   if(strcmp(cm, ACK) != 0){
-    printf("handshake failed.../n");
+    printf("handshake failed...\n");
     return 0;
   }
   
-  
-  return from_client;
+  return to_server;
 }
 
 
@@ -75,7 +77,7 @@ int client_handshake(int *to_server) {
   
   printf("creating private FIFO...\n");
   char pid[1000];
-  sprintf(pid, "&d", getpid());
+  sprintf(pid, "%d", getpid());
   mkfifo(pid, 0644);
   
   printf("opening wkp...\n");
@@ -91,7 +93,6 @@ int client_handshake(int *to_server) {
     printf("error: %s\n", strerror(errno));
     return 0;
   }
-  
   printf("receiving messeage from server...\n");
   int from_server = open(pid, O_RDONLY);
   if(from_server == -1){
@@ -105,7 +106,8 @@ int client_handshake(int *to_server) {
   if(err == -1){
     printf("error: %s\n", strerror(errno));
     return 0;
-  }  
+  }
+  
   remove(pid);
   
   printf("sending response to server...\n");
